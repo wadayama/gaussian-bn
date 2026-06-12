@@ -1,0 +1,66 @@
+[project]
+name = "gaussian-bn"
+version = "0.1.0"
+description = "K-recursion covariance backend for linear Gaussian Bayesian networks: inference, intervention, training, identifiability, and sensor placement."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+    { name = "Tadashi Wadayama", email = "wadayama@nitech.ac.jp" },
+]
+keywords = [
+    "gaussian-bayesian-network",
+    "k-recursion",
+    "linear-gaussian-dag",
+    "conditional-mutual-information",
+    "fisher-information",
+    "identifiability",
+    "causal-intervention",
+    "automatic-differentiation",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Scientific/Engineering :: Mathematics",
+]
+dependencies = [
+    "torch>=2.12.0",
+    # not imported directly, but torch warns at import when numpy is absent
+    "numpy>=2.4.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/wadayama/gaussian-bn"
+Repository = "https://github.com/wadayama/gaussian-bn"
+Issues = "https://github.com/wadayama/gaussian-bn/issues"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["gaussian_bn"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests", "."]
+addopts = "-q --strict-markers"
+markers = [
+    "slow: large-N Monte-Carlo / many-iteration optimization (deselect with -m 'not slow')",
+    "complex: dtype-generic case exercised under complex128",
+]

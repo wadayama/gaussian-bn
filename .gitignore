@@ -1,0 +1,32 @@
+# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+
+# LaTeX build artifacts (keep .tex and .pdf, drop intermediates)
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+build.log
+
+# Third-party reference PDFs (reading copies; not redistributed). Keep the index.
+references/*.pdf
+
+# Unpublished paper drafts and internal working notes (not for the public repo)
+krecursion_gaussian_bn_note.*
+krecursion_gaussian_bn_training_note.*
+notes/
+claude.md
+CLAUDE.md
+PROJECT_SPEC.md
+
+# OS
+.DS_Store
