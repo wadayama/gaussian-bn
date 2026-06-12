@@ -1,6 +1,6 @@
 [project]
 name = "gaussian-bn"
-version = "0.1.0"
+version = "0.2.0"
 description = "K-recursion covariance backend for linear Gaussian Bayesian networks: inference, intervention, training, identifiability, and sensor placement."
 readme = "README.md"
 requires-python = ">=3.12"

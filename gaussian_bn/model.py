@@ -58,7 +58,12 @@ class GaussianDAG:
         dtype: Tensor dtype; defaults to ``torch.get_default_dtype()``.
         device: Tensor device; defaults to CPU.
         validate: If ``True`` (default), run constructor validation (topological
-            order, edge shapes, square SPD noise, at least one root).
+            order, edge shapes, square SPD noise, at least one root). Pass
+            ``"psd"`` to relax the noise check to positive *semi*-definite,
+            which admits deterministic nodes (zero or singular covariance,
+            e.g. exact ODE state updates observed through noisy children);
+            ``False`` skips validation entirely. Functional updates
+            (:meth:`to`, :meth:`replace_edges`, ...) keep the model's mode.
         mean: optional per-node additive offset ``c_j`` in the structural equation
             ``V_j = c_j + sum_i A_{ji} V_i + Z_j`` (each a length-``dims[j]``
             vector). ``None`` (default) is a zero-mean model — fully
@@ -74,7 +79,7 @@ class GaussianDAG:
     noise: list[torch.Tensor]
     dtype: torch.dtype | None = None
     device: torch.device | None = None
-    validate: bool = True
+    validate: bool | Literal["psd"] = True
     mean: list[torch.Tensor] | None = None
 
     def __post_init__(self) -> None:
@@ -143,10 +148,16 @@ class GaussianDAG:
                     f"noise[{j}] has shape {tuple(S.shape)}, expected "
                     f"{(self.dims[j], self.dims[j])}."
                 )
-            try:
-                torch.linalg.cholesky(hermitianize(S))
-            except RuntimeError as exc:  # not positive definite
-                raise ValueError(f"noise[{j}] is not positive definite.") from exc
+            if self.validate == "psd":
+                w = torch.linalg.eigvalsh(hermitianize(S))
+                tol = 1e-10 * max(float(w.max().abs()), 1.0)
+                if float(w.min()) < -tol:
+                    raise ValueError(f"noise[{j}] is not positive semi-definite.")
+            else:
+                try:
+                    torch.linalg.cholesky(hermitianize(S))
+                except RuntimeError as exc:  # not positive definite
+                    raise ValueError(f"noise[{j}] is not positive definite.") from exc
         for j in range(self.M):
             if tuple(self.mean[j].shape) != (self.dims[j],):
                 raise ValueError(
@@ -194,7 +205,7 @@ class GaussianDAG:
         return GaussianDAG(
             self.dims, dict(self.edges), list(self.noise),
             dtype=dtype or self.dtype, device=device or self.device,
-            mean=self._mean_arg(),
+            validate=self.validate, mean=self._mean_arg(),
         )
 
     def replace_edges(self, new: dict[tuple[int, int], torch.Tensor]) -> "GaussianDAG":
@@ -209,21 +220,24 @@ class GaussianDAG:
             else:
                 edges[k] = v
         return GaussianDAG(self.dims, edges, list(self.noise),
-                           dtype=self.dtype, device=self.device, mean=self._mean_arg())
+                           dtype=self.dtype, device=self.device,
+                           validate=self.validate, mean=self._mean_arg())
 
     def replace_noise(self, j: int, Sigma: torch.Tensor) -> "GaussianDAG":
         """Return a copy with ``noise[j]`` replaced."""
         noise = list(self.noise)
         noise[j] = torch.as_tensor(Sigma, dtype=self.dtype, device=self.device)
         return GaussianDAG(self.dims, dict(self.edges), noise,
-                           dtype=self.dtype, device=self.device, mean=self._mean_arg())
+                           dtype=self.dtype, device=self.device,
+                           validate=self.validate, mean=self._mean_arg())
 
     def replace_mean(self, j: int, c: torch.Tensor) -> "GaussianDAG":
         """Return a copy with the node-``j`` offset ``c_j`` replaced."""
         mean = list(self.mean)
         mean[j] = torch.as_tensor(c, dtype=self.dtype, device=self.device).reshape(-1)
         return GaussianDAG(self.dims, dict(self.edges), list(self.noise),
-                           dtype=self.dtype, device=self.device, mean=mean)
+                           dtype=self.dtype, device=self.device,
+                           validate=self.validate, mean=mean)
 
 
 # --------------------------------------------------------------------------

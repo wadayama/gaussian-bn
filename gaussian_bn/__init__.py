@@ -44,6 +44,7 @@ from gaussian_bn.linalg import (
     cholesky_psd,
     hermitianize,
     logdet_hpd,
+    psd_factor,
     schur_complement,
     solve_psd,
 )
@@ -125,6 +126,7 @@ __all__ = [
     "parameter_fisher",
     "pga_ascent",
     "posterior_full_moments",
+    "psd_factor",
     "project_frobenius_ball",
     "project_total_power",
     "sample",

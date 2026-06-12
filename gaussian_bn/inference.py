@@ -21,7 +21,7 @@ from typing import Sequence
 
 import torch
 
-from gaussian_bn.linalg import cholesky_psd, logdet_hpd, schur_complement, solve_psd
+from gaussian_bn.linalg import logdet_hpd, psd_factor, schur_complement, solve_psd
 from gaussian_bn.model import GaussianDAG, k_full, mean_all
 
 
@@ -93,10 +93,14 @@ def sample(model: GaussianDAG, N: int, generator: torch.Generator) -> torch.Tens
     """Draw ``N`` i.i.d. samples of ``V_all`` by topological propagation.
 
     Returns a ``(N, D)`` tensor of the model's dtype. Real and complex models are
-    both supported; complex uses a circularly-symmetric innovation.
+    both supported; complex uses a circularly-symmetric innovation. Nodes with a
+    positive-definite noise use the Cholesky factor (bit-identical to previous
+    releases for a given generator seed); singular-noise nodes (deterministic
+    mechanisms, ``validate="psd"`` models) fall back to an eigendecomposition
+    factor, so they propagate their parents' values plus a degenerate innovation.
     """
     X = torch.zeros((N, model.D), dtype=model.dtype, device=model.device)
-    chol = {j: cholesky_psd(model.noise[j]) for j in range(model.M)}
+    chol = {j: psd_factor(model.noise[j]) for j in range(model.M)}
     for j in range(model.M):
         if model.dtype.is_complex:
             real_dtype = torch.float64 if model.dtype == torch.complex128 else torch.float32

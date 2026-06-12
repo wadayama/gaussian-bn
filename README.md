@@ -71,7 +71,7 @@ You should see all tests pass (a few large-`N` Monte-Carlo tests are marked
 ```
 gaussian-bn/
 ├── gaussian_bn/     core library (12 modules; see gaussian_bn/README.md)
-├── tests/           pytest suite (169 tests; see tests/README.md)
+├── tests/           pytest suite (177 tests; see tests/README.md)
 ├── examples/        short, self-contained quick-start scripts (see examples/README.md)
 ├── experiments/     applied experiments: hidden-node EM, sensor placement,
 │                    interventional information geometry, structure learning,
@@ -183,7 +183,7 @@ All symbols are re-exported from the top-level package
 
 | Symbol | Module | Purpose |
 | --- | --- | --- |
-| `GaussianDAG(dims, edges, noise, *, dtype=None, device=None, validate=True, mean=None)` | `model` | Container for a linear Gaussian BN; validates structure, infers dtype/device, exposes `k_blocks()`. Optional per-node offset `mean` (default zero) makes the model affine `V_j = c_j + sum_i A_{ji} V_i + Z_j`. |
+| `GaussianDAG(dims, edges, noise, *, dtype=None, device=None, validate=True, mean=None)` | `model` | Container for a linear Gaussian BN; validates structure, infers dtype/device, exposes `k_blocks()`. Optional per-node offset `mean` (default zero) makes the model affine `V_j = c_j + sum_i A_{ji} V_i + Z_j`. `validate="psd"` admits singular noise (deterministic nodes, e.g. exact ODE state updates observed through noisy children); query/conditioning sets must then stay nonsingular. |
 | `mean_all(model)` | `model` | Stacked marginal means `(I - A)^{-1} c` via the mean recursion (zero for a zero-mean model). |
 | `compute_k_blocks(num_nodes, parents, edge_mats, root_covs, noise_covs, *, ...)` | `krecursion` | Forward K-recursion → canonical blocks `K[(j,k)]` (`j ≥ k`). Supports multiple roots. |
 | `get_K(K, a, b)` | `krecursion` | Read `K_{ab}`, applying the Hermitian flip `K_{ab} = K_{ba}^H` when `a < b`. |
@@ -200,6 +200,7 @@ All symbols are re-exported from the top-level package
 | `solve_psd(A, B, *, jitter=0.0)` | `linalg` | `(A + jitter·I)^{-1} B` via a solve (never an explicit inverse). |
 | `schur_complement(KAA, KAB, KBB, *, jitter=0.0)` | `linalg` | Hermitian Schur complement `K_{A\|B}`. |
 | `cholesky_psd(A, *, jitter=0.0)` | `linalg` | Lower-triangular Cholesky factor with a PD floor. |
+| `psd_factor(A, *, jitter=0.0)` | `linalg` | Factor `L` with `L L^H = A` for PSD (possibly singular) `A`; Cholesky-first, eigendecomposition fallback. |
 
 ### Inference
 

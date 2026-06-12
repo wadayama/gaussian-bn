@@ -131,3 +131,31 @@ def cholesky_psd(A: torch.Tensor, *, jitter: float = 0.0) -> torch.Tensor:
     if jitter > 0.0:
         A = A + jitter * _eye_like(A)
     return torch.linalg.cholesky(A)
+
+
+def psd_factor(A: torch.Tensor, *, jitter: float = 0.0) -> torch.Tensor:
+    """A factor ``L`` with ``L L^H = A`` for Hermitian positive *semi*-definite ``A``.
+
+    Tries the Cholesky factorization first, so for positive-definite input the
+    result (and anything seeded on it, e.g. sampling) is bit-identical to
+    :func:`cholesky_psd`. Only when the Cholesky fails -- a singular covariance,
+    such as the zero matrix of a deterministic node -- does it fall back to a
+    symmetric eigendecomposition ``A = V diag(w) V^H`` and return
+    ``V diag(sqrt(max(w, 0)))`` (not triangular, which no caller requires).
+
+    Args:
+        A: Hermitian PSD matrix (``d x d``), possibly singular.
+        jitter: Optional positive diagonal shift added before factorization.
+
+    Returns:
+        ``L`` (``d x d``) with ``L L^H = A (+ jitter I)`` up to the clamping of
+        tiny negative round-off eigenvalues.
+    """
+    try:
+        return cholesky_psd(A, jitter=jitter)
+    except torch.linalg.LinAlgError:
+        Ah = hermitianize(A)
+        if jitter > 0.0:
+            Ah = Ah + jitter * _eye_like(Ah)
+        w, V = torch.linalg.eigh(Ah)
+        return V * torch.sqrt(torch.clamp(w, min=0.0)).to(V.dtype)

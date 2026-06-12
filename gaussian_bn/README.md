@@ -8,7 +8,7 @@ documented (with signatures) in [`../README.md`](../README.md#public-api).
 | Module | Purpose |
 | --- | --- |
 | `__init__.py` | Public-API re-exports (49 symbols, alphabetized in `__all__`). |
-| `linalg.py` | Numerical core: `hermitianize`, `logdet_hpd`, `solve_psd` (solve, never inverse), `schur_complement` (re-symmetrized), `cholesky_psd`. Single chokepoint for the jitter / PD policy. |
+| `linalg.py` | Numerical core: `hermitianize`, `logdet_hpd`, `solve_psd` (solve, never inverse), `schur_complement` (re-symmetrized), `cholesky_psd`, `psd_factor` (PSD-safe, Cholesky-first). Single chokepoint for the jitter / PD policy. |
 | `krecursion.py` | Forward K-recursion: `compute_k_blocks` (multi-root) and the Hermitian-flip accessor `get_K`. |
 | `model.py` | `GaussianDAG` container (validation, dtype/device inference, optional affine `mean` offsets, `k_blocks`), `k_full`, `mean_all`, `full_covariance_closed_form` (test oracle), and the autograd parametrization `pack` / `unpack` / `ParamPack`. |
 | `inference.py` | `marginal`, `conditional_covariance`, `conditional_mean`, `mutual_information`, `conditional_mutual_information`, `sample`. |

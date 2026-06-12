@@ -3,7 +3,7 @@
 Run from the repository root:
 
 ```bash
-uv run pytest                 # full suite (169 tests)
+uv run pytest                 # full suite (177 tests)
 uv run pytest -m "not slow"   # fast subset (skips large-N Monte-Carlo / sampled AD-EM)
 uv run pytest -k fd_vs_autograd   # gradient cross-checks only
 ```
