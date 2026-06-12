@@ -74,7 +74,8 @@ gaussian-bn/
 ├── tests/           pytest suite (169 tests; see tests/README.md)
 ├── examples/        short, self-contained quick-start scripts (see examples/README.md)
 ├── experiments/     applied experiments: hidden-node EM, sensor placement,
-│                    interventional information geometry, structure learning
+│                    interventional information geometry, structure learning,
+│                    CRB reliability, SDE estimation under subsampling
 │                    (see experiments/README.md)
 ├── docs/            5-part Markdown tutorial walkthrough (see docs/README.md)
 ├── assets/          visual abstract + its generator script (real k_full output)
@@ -293,11 +294,12 @@ non-identifiable directions reported as `SE = ∞`.
 
 - [`examples/`](examples/) — short, self-contained scripts for the quick-start
   patterns above (inference, training, intervention).
-- [`experiments/`](experiments/) — four applied experiments, each reproducible
-  via `uv run python experiments/<script>.py`, with a combined LaTeX summary:
-  hidden-node EM vs gradient training, Fisher-based sensor placement,
-  interventional information geometry, and structure learning by group-sparsity
-  pruning. See [`experiments/README.md`](experiments/README.md).
+- [`experiments/`](experiments/) — six applied experiments, each reproducible
+  via `uv run python experiments/<script>.py`: hidden-node EM vs gradient
+  training, Fisher-based sensor placement, interventional information geometry,
+  structure learning by group-sparsity pruning, CRB estimator reliability, and
+  accuracy-declared SDE (Ornstein–Uhlenbeck) parameter estimation under
+  subsampled observation. See [`experiments/README.md`](experiments/README.md).
 
 All experiment numbers come from actual code execution (results are written to
 `experiments/results/*.json`); no values are hand-edited.
