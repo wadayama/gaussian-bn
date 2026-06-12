@@ -3,6 +3,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-%E2%89%A53.12-blue.svg)](https://www.python.org/)
 
+<p align="center">
+  <img src="assets/visual_abstract.svg" width="100%"
+       alt="Visual abstract: the local parameters of a linear Gaussian DAG are mapped by the differentiable K-recursion to all node-pair covariance blocks, on which inference, estimation, identifiability, intervention, and sensor design are built.">
+</p>
+
 A differentiable **K-recursion** covariance backend for linear Gaussian
 Bayesian networks (BNs). A single topology-agnostic forward pass maps the local
 conditional parameters `{A_{ji}, Σ_j}` of a linear Gaussian DAG to every
@@ -72,6 +77,7 @@ gaussian-bn/
 │                    interventional information geometry, structure learning
 │                    (see experiments/README.md)
 ├── docs/            5-part Markdown tutorial walkthrough (see docs/README.md)
+├── assets/          visual abstract + its generator script (real k_full output)
 ├── pyproject.toml   project metadata and dependencies (uv / pip)
 ├── LICENSE          MIT
 ├── MATH.md          implementation-side mathematical exposition
