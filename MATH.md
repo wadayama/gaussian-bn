@@ -30,6 +30,57 @@ recursion** `m_j = c_j + sum_{i in Pa(j)} A_{ji} m_i`, i.e. `m_all = (I-A)^{-1} 
 the covariance Fisher metric depend only on `K` and are mean-invariant. A
 zero-mean model (`mean=None`) is the default and a numeric no-op.
 
+## 1b. Degenerate covariances — the PSD cone
+
+The natural parameter space of the Gaussian family is the closed cone of
+positive **semi**-definite matrices, not just its interior (the PD matrices). A
+Gaussian `N(μ, Σ)` with `Σ ⪰ 0`, possibly singular, is a rigorously defined
+probability measure: constructively the law of `μ + L z` for any factor
+`L L^H = Σ` and standard normal `z`, equivalently the measure with
+characteristic function `φ(t) = exp(i t^H μ − ½ t^H Σ t)` (a valid
+characteristic function for every PSD `Σ`). The boundary cases are meaningful:
+`Σ = 0` is exactly the Dirac point mass `δ_μ`, and a singular `Σ` is a Gaussian
+supported on the affine subspace `μ + range(Σ)` of dimension `rank Σ`, with a
+density on that subspace. The family is closed under weak limits
+(`Σ + εI → Σ`), so degenerate Gaussians are honest limit points, not
+pathologies.
+
+A BN with **deterministic nodes** (`Σ_j` singular or zero — exact ODE state
+updates, point interventions, hard constraints) is therefore a valid Bayesian
+network: its conditional distributions are Markov kernels, and Dirac kernels
+are kernels. The joint law is the pushforward of the root/innovation variables
+through the structural equations — the same construction as a structural
+causal model, where deterministic mechanisms are the norm.
+
+What does and does not survive on the boundary splits along the
+**measure-level vs density-level** line:
+
+- **Measure level — valid on the whole cone.** The K-recursion (2) is the
+  bilinearity of covariance under linear maps,
+  `Cov(A X + Z) = A Cov(X) A^H + Σ_Z`; no densities appear, so `k_full`,
+  `marginal`, and the mean recursion are exact for any PSD noise. Conditioning
+  on a set `B` with `K_BB ≻ 0` is the classical Schur-complement formula even
+  when the *conditioned* block is degenerate (smoothing a deterministic hidden
+  state from noisy observations is well-posed). Sampling is the pushforward
+  construction itself: `sample` factors each `Σ_j` by `psd_factor`
+  (Cholesky-first, eigendecomposition fallback), so a deterministic node simply
+  propagates its parents exactly.
+- **Density level — requires PD on the queried block.** The density formula
+  with `Σ^{-1}` and `log det Σ` exists only relative to Lebesgue measure on the
+  queried coordinates, i.e. when that block is PD: the likelihood (4) needs
+  `K_OO ≻ 0`, the Slepian–Bangs Fisher (5) needs `K_OO(θ) ≻ 0` in a
+  neighborhood of `θ` (this is also the CRB regularity condition — it fails in
+  the non-regular regime where the *support itself* moves with `θ`), and mutual
+  information across a deterministic link is genuinely `+∞` (the library raises
+  on the Cholesky rather than returning the infinity).
+
+`GaussianDAG(..., validate="psd")` admits singular noise (the default
+validation still requires PD); the operational rule "every set you condition
+on, take a likelihood of, or differentiate a log-density at must be
+nonsingular" is the API image of this measure/density boundary. In the typical
+deterministic-dynamics use, observations carry PD noise, so `K_OO ≻ 0` holds
+automatically and the entire estimation/CRB/design stack applies unchanged.
+
 ## 2. The K-recursion
 
 The node-pair covariance blocks are `K_{jk} = E[V_j V_k^H]`. Substituting (1)
