@@ -161,7 +161,7 @@ def _crb_from_fisher(F: torch.Tensor, w: torch.Tensor, U: torch.Tensor, N: int,
     if U_null.shape[1] > 0:
         null_proj = torch.linalg.norm(U_null, dim=1)   # ||P_null e_a|| per parameter
     else:
-        null_proj = torch.zeros(q, dtype=crb.real.dtype)
+        null_proj = torch.zeros(q, dtype=crb.real.dtype, device=crb.device)
     unident = null_proj > 1e-6
 
     se = torch.sqrt(torch.clamp(torch.diagonal(crb).real, min=0.0))

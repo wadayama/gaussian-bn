@@ -106,24 +106,34 @@ def conditional_mutual_information(model: GaussianDAG, A: Sequence[int], B: Sequ
 def sample(model: GaussianDAG, N: int, generator: torch.Generator) -> torch.Tensor:
     """Draw ``N`` i.i.d. samples of ``V_all`` by topological propagation.
 
-    Returns a ``(N, D)`` tensor of the model's dtype. Real and complex models are
+    Returns a ``(N, D)`` tensor of the model's dtype and device. Real and complex
+    models are
     both supported; complex uses a circularly-symmetric innovation. Nodes with a
     positive-definite noise use the Cholesky factor (bit-identical to previous
     releases for a given generator seed); singular-noise nodes (deterministic
     mechanisms, ``validate="psd"`` models) fall back to an eigendecomposition
     factor, so they propagate their parents' values plus a degenerate innovation.
+    The draws are made on the generator's device and moved to the model's device,
+    so a CPU generator gives the same stream regardless of where the model lives;
+    pass a generator on the model's device to draw there directly.
     """
     X = torch.zeros((N, model.D), dtype=model.dtype, device=model.device)
     chol = {j: psd_factor(model.noise[j]) for j in range(model.M)}
+    # Draw on the generator's device (a CPU generator gives device-independent,
+    # bit-reproducible streams), then move to the model's device.
+    gdev = generator.device
     for j in range(model.M):
         if model.dtype.is_complex:
             real_dtype = torch.float64 if model.dtype == torch.complex128 else torch.float32
-            zr = torch.randn((N, model.dims[j]), dtype=real_dtype, generator=generator)
-            zi = torch.randn((N, model.dims[j]), dtype=real_dtype, generator=generator)
+            zr = torch.randn((N, model.dims[j]), dtype=real_dtype, generator=generator,
+                             device=gdev)
+            zi = torch.randn((N, model.dims[j]), dtype=real_dtype, generator=generator,
+                             device=gdev)
             z = torch.complex(zr, zi) / (2.0 ** 0.5)
         else:
-            z = torch.randn((N, model.dims[j]), dtype=model.dtype, generator=generator)
-        v = z @ chol[j].mH
+            z = torch.randn((N, model.dims[j]), dtype=model.dtype, generator=generator,
+                            device=gdev)
+        v = z.to(model.device) @ chol[j].mH
         for i in model.parents[j]:
             v = v + X[:, model.slc(i)] @ model.edges[(i, j)].mH
         if model.has_mean:

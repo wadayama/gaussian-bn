@@ -343,9 +343,14 @@ A step-by-step walkthrough is under [`docs/`](docs/):
   intervals are asymptotic. Noise CRBs are reported in the chosen
   (`chol` / `logdiag`) parametrization. Complex-parameter CRBs would need the
   widely-linear extended Fisher (the library is real-centric).
-- **GPU / MPS.** The library is device-agnostic, but as of PyTorch 2.12 Apple
-  MPS lacks `float64` and complex `linalg`; use CPU (or CUDA) for the standard
-  `float64` / `complex128` workflows.
+- **GPU / MPS.** The library is device-agnostic: pass
+  `GaussianDAG(..., device="cuda")` (or `.to(device=...)`) and every routine
+  runs on that device; a CPU `torch.Generator` gives device-independent,
+  bit-reproducible sampling streams. As of PyTorch 2.12 Apple MPS lacks
+  `float64` and complex `linalg`, and `linalg.eigh` needs
+  `PYTORCH_ENABLE_MPS_FALLBACK=1`; use CPU or CUDA for the standard
+  `float64` / `complex128` workflows, and treat `float32` rank/identifiability
+  decisions with care (the rank tolerance is sized for `float64`).
 
 ---
 

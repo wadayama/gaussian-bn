@@ -147,7 +147,7 @@ def marginal_likelihood(model: GaussianDAG, patterns: Sequence[ObsPattern],
     """
     Kf = k_full(model)
     m = mean_all(model) if model.has_mean else None
-    total = torch.zeros((), dtype=torch.float64, device=model.device)
+    total = torch.zeros((), dtype=Kf.real.dtype, device=model.device)
     count = 0
     for pat in patterns:
         K_OO = _observed_block(model, pat.observed, Kf)

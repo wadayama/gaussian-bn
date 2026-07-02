@@ -84,7 +84,7 @@ def fisher_metric(
     # with the field constant c = 1/2 (real) or 1 (circular complex).
     c = 1.0 if K0.is_complex() else 0.5
     KinvdK = [solve_psd(K0, dKa, jitter=jitter) for dKa in dK]
-    G = torch.zeros((q, q), dtype=torch.float64, device=K0.device)
+    G = torch.zeros((q, q), dtype=K0.real.dtype, device=K0.device)
     for a in range(q):
         for b in range(q):
             G[a, b] = c * torch.trace(KinvdK[a] @ KinvdK[b]).real
