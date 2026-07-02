@@ -23,6 +23,7 @@ references/*.pdf
 # Unpublished paper drafts and internal working notes (not for the public repo)
 krecursion_gaussian_bn_note.*
 krecursion_gaussian_bn_training_note.*
+arxiv/
 notes/
 research_plan/
 claude.md

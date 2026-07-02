@@ -75,9 +75,10 @@ gaussian-bn/
 ├── examples/        short, self-contained quick-start scripts (see examples/README.md)
 ├── experiments/     applied experiments: hidden-node EM, sensor placement,
 │                    interventional information geometry, structure learning,
-│                    CRB reliability, SDE estimation under subsampling
+│                    CRB reliability, SDE estimation under subsampling,
+│                    LDS state-space validation vs Kalman/RTS
 │                    (see experiments/README.md)
-├── docs/            5-part Markdown tutorial walkthrough (see docs/README.md)
+├── docs/            4-part Markdown tutorial walkthrough (see docs/README.md)
 ├── assets/          visual abstract + its generator script (real k_full output)
 ├── pyproject.toml   project metadata and dependencies (uv / pip)
 ├── LICENSE          MIT
@@ -197,7 +198,7 @@ All symbols are re-exported from the top-level package
 | --- | --- | --- |
 | `hermitianize(A)` | `linalg` | `(A + A^H) / 2`; enforce Hermitian structure against round-off. |
 | `logdet_hpd(A, jitter=0.0)` | `linalg` | Cholesky-based `log det A` for Hermitian PD `A`. |
-| `solve_psd(A, B, *, jitter=0.0)` | `linalg` | `(A + jitter·I)^{-1} B` via a solve (never an explicit inverse). |
+| `solve_psd(A, B, *, jitter=0.0)` | `linalg` | `(A + jitter·I)^{-1} B` via a Cholesky factor and triangular solves (never an explicit inverse). |
 | `schur_complement(KAA, KAB, KBB, *, jitter=0.0)` | `linalg` | Hermitian Schur complement `K_{A\|B}`. |
 | `cholesky_psd(A, *, jitter=0.0)` | `linalg` | Lower-triangular Cholesky factor with a PD floor. |
 | `psd_factor(A, *, jitter=0.0)` | `linalg` | Factor `L` with `L L^H = A` for PSD (possibly singular) `A`; Cholesky-first, eigendecomposition fallback. |
@@ -283,8 +284,10 @@ non-identifiable directions reported as `SE = ∞`.
   tensors you pass; built from Python lists it defaults to `float64`. Pass
   `complex128` tensors for circular-complex Gaussian models.
 - **Units.** Mutual information and CMI are in **nats** (natural log), with the
-  real-Gaussian `1/2 log-det` convention.
-- **Numerical hardening.** All conditioning uses a linear `solve` (never an
+  `1/2 log-det` convention for real models and the `1 log-det` convention for
+  circular-complex models.
+- **Numerical hardening.** All conditioning uses a Cholesky factorization and
+  triangular solves (never an
   explicit inverse); every returned covariance is re-symmetrized; an optional
   `jitter` floors the positive-definite cone on Cholesky / log-det / solve
   paths.
@@ -295,12 +298,15 @@ non-identifiable directions reported as `SE = ∞`.
 
 - [`examples/`](examples/) — short, self-contained scripts for the quick-start
   patterns above (inference, training, intervention).
-- [`experiments/`](experiments/) — six applied experiments, each reproducible
+- [`experiments/`](experiments/) — eight applied experiments, each reproducible
   via `uv run python experiments/<script>.py`: hidden-node EM vs gradient
   training, Fisher-based sensor placement, interventional information geometry,
-  structure learning by group-sparsity pruning, CRB estimator reliability, and
+  structure learning by group-sparsity pruning, CRB estimator reliability,
   accuracy-declared SDE (Ornstein–Uhlenbeck) parameter estimation under
-  subsampled observation. See [`experiments/README.md`](experiments/README.md).
+  subsampled observation, a linear Gaussian state-space running example
+  validated against the Kalman filter / RTS smoother, and sensor-network
+  self-calibration on a fusion DAG (gauge staircase + placement-quality CRB).
+  See [`experiments/README.md`](experiments/README.md).
 
 All experiment numbers come from actual code execution (results are written to
 `experiments/results/*.json`); no values are hand-edited.
@@ -324,9 +330,9 @@ A step-by-step walkthrough is under [`docs/`](docs/):
   quantizers) are out of scope.
 - **Optimization.** `fit_gradient` / `pga_ascent` are intentionally minimal;
   for non-convex objectives, multi-start is recommended.
-- **Identifiability cost.** `fisher_metric` uses an `O(q)` autograd Jacobian in
-  the parameter count `q`; a finite-difference fallback (`method="fd"`) is
-  provided.
+- **Identifiability cost.** `fisher_metric` uses an `O(q)` forward-mode
+  autograd Jacobian (one sweep per parameter, with a reverse-mode fallback);
+  a finite-difference fallback (`method="fd"`) is also provided.
 - **CRB is asymptotic.** The Cramér–Rao bound lower-bounds *unbiased* estimators;
   MLE/EM attain it as `N → ∞`, so `crb_report` standard errors and confidence
   intervals are asymptotic. Noise CRBs are reported in the chosen
