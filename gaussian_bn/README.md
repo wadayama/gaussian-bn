@@ -7,13 +7,13 @@ documented (with signatures) in [`../README.md`](../README.md#public-api).
 
 | Module | Purpose |
 | --- | --- |
-| `__init__.py` | Public-API re-exports (52 symbols, alphabetized in `__all__`). |
+| `__init__.py` | Public-API re-exports (53 symbols, alphabetized in `__all__`). |
 | `linalg.py` | Numerical core: `hermitianize`, `logdet_hpd`, `solve_psd` (Cholesky factor + triangular solves, never an inverse), `schur_complement` (re-symmetrized), `cholesky_psd`, `psd_factor` (PSD-safe, Cholesky-first). Single chokepoint for the jitter / PD policy. |
 | `krecursion.py` | Forward K-recursion: `compute_k_blocks` (multi-root) and the Hermitian-flip accessor `get_K`. |
 | `model.py` | `GaussianDAG` container (validation, dtype/device inference, optional affine `mean` offsets, `k_blocks`), `k_full`, `mean_all`, `full_covariance_closed_form` (test oracle), and the autograd parametrization `pack` / `unpack` / `ParamPack`. |
 | `inference.py` | `marginal`, `conditional_covariance`, `conditional_mean`, `mutual_information`, `conditional_mutual_information`, `sample`. |
 | `training.py` | Estimation: `fit_local_regression` / `local_mle_from_cov` (+ridge), `gaussian_nll`, `marginal_likelihood` (multi-pattern), `posterior_full_moments`, `em_fit`, `fit_gradient` (free edges), `fit_gradient_custom` (shared / factored / constrained edges via a closure), `ObsPattern`. |
-| `identifiability.py` | Pullback Fisher metric `fisher_metric` / `edge_fisher` and `identifiability_report` (`IdentifiabilityReport`). |
+| `identifiability.py` | Pullback Fisher metric `fisher_metric` / `edge_fisher`, `identifiability_report` (`IdentifiabilityReport`), and the nested-AD variant `fisher_metric_differentiable` (a differentiable `G` for design objectives such as `logdet G`). |
 | `reliability.py` | Slepian–Bangs Fisher information and the Cramér–Rao bound: `parameter_fisher`, `crb`, `crb_report` (`CRBReport`) — standard errors, confidence intervals, and `SE = ∞` for non-identifiable directions. |
 | `intervention.py` | Do-operations `do_hard` (mechanism or point `do(V_j=u)`), `do_soft`, `do_covariance`, `do_cmi` (each returns a fresh `GaussianDAG`), and `counterfactual` (abduction–action–prediction). |
 | `design.py` | D-/E-optimal `sensor_placement` (greedy + exhaustive) and the score functions `d_optimal_score`, `e_optimal_score`. |

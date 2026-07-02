@@ -97,3 +97,63 @@ def test_report_flags_gauge():
     assert rep.q == 2
     assert rep.eigenvalues.numel() == 2
     assert rep.per_param_sensitivity.numel() == 2
+
+
+# ---------------------------------------------------------------------------
+# fisher_metric_differentiable: nested AD for design objectives
+# ---------------------------------------------------------------------------
+from gaussian_bn.identifiability import fisher_metric_differentiable
+from gaussian_bn.inference import marginal as _marginal
+from gaussian_bn.model import pack, unpack
+
+
+def _K_of_eta_for(m, edges, observed):
+    eta0, pk = pack(m, free_edges=edges, noise_param="fixed", requires_grad=False)
+
+    def K_of_eta(eta):
+        return _marginal(unpack(eta, pk, m), observed)
+
+    return K_of_eta, eta0
+
+
+def test_fisher_differentiable_matches_fisher_metric():
+    m = diamond_model()
+    edges = [(0, 1), (0, 2), (1, 3), (2, 3)]
+    K_of_eta, eta0 = _K_of_eta_for(m, edges, [0, 3])
+    G_ref, _, _ = fisher_metric(K_of_eta, eta0)
+    G_dif = fisher_metric_differentiable(K_of_eta, eta0)
+    assert torch.linalg.norm(G_dif.detach() - G_ref) / torch.linalg.norm(G_ref) < 1e-10
+
+
+def test_fisher_differentiable_design_gradient_matches_fd():
+    # hidden common parent 0 feeding children 1..3; design parameter theta scales
+    # the KNOWN edge (0, 3); statistical parameters are the free edges (0, 1),
+    # (0, 2). Because the parent is hidden, theta shapes the observed
+    # cross-covariances and hence the Fisher metric of the free edges, so the
+    # design objective logdet G(theta) has a nontrivial gradient. (Under full
+    # observation the likelihood factorizes node-wise and the gradient would be
+    # identically zero.)
+    f64 = dict(dtype=torch.float64)
+
+    def build(theta):
+        edges = {(0, 1): torch.tensor([[1.2]], **f64),
+                 (0, 2): torch.tensor([[0.8]], **f64),
+                 (0, 3): torch.tensor([[0.5]], **f64) * theta}
+        noise = [torch.eye(1, **f64), 0.3 * torch.eye(1, **f64),
+                 0.4 * torch.eye(1, **f64), 0.5 * torch.eye(1, **f64)]
+        return GaussianDAG([1, 1, 1, 1], edges, noise, validate=False)
+
+    def phi(theta):
+        mm = build(theta)
+        K_of_eta, eta0 = _K_of_eta_for(mm, [(0, 1), (0, 2)], [1, 2, 3])
+        G = fisher_metric_differentiable(K_of_eta, eta0)
+        return torch.logdet(G)
+
+    theta = torch.tensor(1.1, dtype=torch.float64, requires_grad=True)
+    (g_ad,) = torch.autograd.grad(phi(theta), theta)
+    h = 1e-6
+    with torch.no_grad():
+        fd = (phi(torch.tensor(1.1 + h, dtype=torch.float64))
+              - phi(torch.tensor(1.1 - h, dtype=torch.float64))) / (2 * h)
+    assert abs(float(fd)) > 0.1                      # the objective really moves
+    assert abs(float(g_ad - fd)) / abs(float(fd)) < 1e-6

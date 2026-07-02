@@ -13,6 +13,10 @@ distribution to first order.
 :func:`edge_fisher` specializes it to a chosen set of edge parameters of a model
 and observed node set; :func:`identifiability_report` bundles rank, condition
 number, null directions, and per-parameter sensitivity into a dataclass.
+:func:`fisher_metric_differentiable` is the nested-AD variant: it returns ``G``
+with the autograd graph intact, so scalar design objectives such as
+``logdet(G + eps I)`` can themselves be differentiated with respect to design
+parameters that shape the map ``eta -> K_OO``.
 """
 
 from __future__ import annotations
@@ -87,6 +91,56 @@ def fisher_metric(
     G = 0.5 * (G + G.mH)
     eigvals, eigvecs = torch.linalg.eigh(G)
     return G, eigvals, eigvecs
+
+
+def fisher_metric_differentiable(
+    K_of_eta: Callable[[torch.Tensor], torch.Tensor],
+    eta0: torch.Tensor,
+    *,
+    jitter: float = 0.0,
+) -> torch.Tensor:
+    """Pullback Fisher metric ``G`` with the autograd graph kept intact.
+
+    The nested-AD companion to :func:`fisher_metric`. Where :func:`fisher_metric`
+    detaches its inputs and returns numerical values (rank / gauge / CRB
+    reporting), this variant builds the inner Jacobian ``dK_OO/d eta`` with
+    forward-mode AD (``torch.func.jacfwd``) **without detaching**, so the
+    returned ``G`` is a differentiable function of any tensors that
+    ``K_of_eta`` closes over. A scalar design objective, e.g. the D-optimality
+    score ``logdet(G + eps I)``, can then be differentiated with respect to
+    those design parameters by ordinary reverse-mode AD: the outer sweep
+    back-propagates through the inner Jacobian (second-order, mixed
+    ``d^2 K / d theta d eta`` derivatives are handled automatically).
+
+    Args:
+        K_of_eta: Differentiable map from a 1-D real parameter vector to the
+            observed covariance ``K_OO``. Design parameters enter as closed-over
+            tensors with ``requires_grad=True``.
+        eta0: Point at which to evaluate the metric (the statistical parameters;
+            real-valued).
+        jitter: Diagonal shift used in the ``K_OO^{-1}`` solves.
+
+    Returns:
+        ``G`` (``q x q``, real, symmetric), connected to the autograd graph.
+        Compose with ``torch.logdet`` / ``torch.linalg.eigvalsh`` and call
+        ``backward()`` on the resulting scalar.
+    """
+    eta0 = torch.as_tensor(eta0)
+    q = eta0.numel()
+
+    def kflat(eta: torch.Tensor) -> torch.Tensor:
+        return K_of_eta(eta).reshape(-1)
+
+    J = torch.func.jacfwd(kflat)(eta0)                       # (d*d, q), graph intact
+    K0 = K_of_eta(eta0)
+    d = K0.shape[-1]
+    c = 1.0 if K0.is_complex() else 0.5
+    M = torch.stack([solve_psd(K0, J[:, a].reshape(d, d), jitter=jitter)
+                     for a in range(q)])                     # (q, d, d) = K^{-1} dK_a
+    G = c * torch.einsum("aij,bji->ab", M, M)
+    if G.is_complex():
+        G = G.real
+    return 0.5 * (G + G.mT)
 
 
 def edge_fisher(

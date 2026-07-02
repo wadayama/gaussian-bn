@@ -71,12 +71,13 @@ You should see all tests pass (a few large-`N` Monte-Carlo tests are marked
 ```
 gaussian-bn/
 ├── gaussian_bn/     core library (12 modules; see gaussian_bn/README.md)
-├── tests/           pytest suite (177 tests; see tests/README.md)
+├── tests/           pytest suite (179 tests; see tests/README.md)
 ├── examples/        short, self-contained quick-start scripts (see examples/README.md)
 ├── experiments/     applied experiments: hidden-node EM, sensor placement,
 │                    interventional information geometry, structure learning,
 │                    CRB reliability, SDE estimation under subsampling,
-│                    LDS state-space validation vs Kalman/RTS
+│                    LDS state-space validation vs Kalman/RTS,
+│                    skip-connected LDS, continuous D-optimal design
 │                    (see experiments/README.md)
 ├── docs/            4-part Markdown tutorial walkthrough (see docs/README.md)
 ├── assets/          visual abstract + its generator script (real k_full output)
@@ -235,6 +236,7 @@ All symbols are re-exported from the top-level package
 | `fisher_metric(K_of_eta, eta0, *, method="autograd"\|"fd", ...)` | `identifiability` | Pullback Fisher metric of a map `η → K_OO`; returns `(G, eigvals, eigvecs)`. |
 | `edge_fisher(model, edge_params, observed, *, method="autograd", ...)` | `identifiability` | Fisher metric over chosen edges for an observed set. |
 | `identifiability_report(model, edge_params, observed, *, ...)` | `identifiability` | Rank, condition number, null directions, per-parameter sensitivity. |
+| `fisher_metric_differentiable(K_of_eta, eta0, *, jitter=0.0)` | `identifiability` | Nested-AD variant: returns `G` with the autograd graph intact, so design objectives like `logdet G(θ)` can be optimized by gradient ascent (reverse-mode through the inner forward-mode Jacobian). |
 | `IdentifiabilityReport` | `identifiability` | Result dataclass of the above. |
 
 ### Reliability (Cramér–Rao bound)
@@ -298,14 +300,17 @@ non-identifiable directions reported as `SE = ∞`.
 
 - [`examples/`](examples/) — short, self-contained scripts for the quick-start
   patterns above (inference, training, intervention).
-- [`experiments/`](experiments/) — eight applied experiments, each reproducible
+- [`experiments/`](experiments/) — ten applied experiments, each reproducible
   via `uv run python experiments/<script>.py`: hidden-node EM vs gradient
   training, Fisher-based sensor placement, interventional information geometry,
   structure learning by group-sparsity pruning, CRB estimator reliability,
   accuracy-declared SDE (Ornstein–Uhlenbeck) parameter estimation under
   subsampled observation, a linear Gaussian state-space running example
-  validated against the Kalman filter / RTS smoother, and sensor-network
-  self-calibration on a fusion DAG (gauge staircase + placement-quality CRB).
+  validated against the Kalman filter / RTS smoother, its skip-connected
+  (non-chain) extension validated against a companion-form Kalman recursion,
+  sensor-network self-calibration on a fusion DAG (gauge staircase +
+  placement-quality CRB), and continuous D-optimal design by nested automatic
+  differentiation.
   See [`experiments/README.md`](experiments/README.md).
 
 All experiment numbers come from actual code execution (results are written to

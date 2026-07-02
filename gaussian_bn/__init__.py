@@ -22,6 +22,7 @@ from gaussian_bn.identifiability import (
     IdentifiabilityReport,
     edge_fisher,
     fisher_metric,
+    fisher_metric_differentiable,
     identifiability_report,
 )
 from gaussian_bn.intervention import (
@@ -105,6 +106,7 @@ __all__ = [
     "edge_fisher",
     "em_fit",
     "fisher_metric",
+    "fisher_metric_differentiable",
     "fit_gradient",
     "fit_gradient_custom",
     "fit_local_regression",
