@@ -101,10 +101,18 @@ def run() -> dict:
     e_prior = max(float(torch.linalg.norm(gbn.marginal(m, [n], Kf) - Sig[n])) for n in range(N))
     e_smooth = max(float(torch.linalg.norm(gbn.conditional_covariance(m, [n], obs_nodes, Kf) - Psm[n]))
                    for n in range(N))
+    # discrete Lyapunov (Stein) steady state: Sig_bar = A Sig_bar A^T + Q,
+    # computed via the series sum (converges since rho(A) < 1)
+    Sig_bar, Ak = Q.clone(), torch.eye(d)
+    for _ in range(2000):
+        Ak = A @ Ak
+        Sig_bar = Sig_bar + Ak @ Q @ Ak.T
     out["E1_inference"] = {
         "max_err_prior_vs_kalman_predict": e_prior,
         "max_err_smoother_vs_rts": e_smooth,
         "lyapunov_gap_last_step": float(torch.linalg.norm(Sig[-1] - Sig[-2])),
+        "lyapunov_stein_residual": float(torch.linalg.norm(Sig_bar - (A @ Sig_bar @ A.T + Q))),
+        "gap_to_steady_state_at_N": float(torch.linalg.norm(Sig[-1] - Sig_bar)),
     }
 
     # ---- E2: Markov conditional independence ----
