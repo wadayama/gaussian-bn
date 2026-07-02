@@ -5,7 +5,8 @@ formula gives the per-sample Fisher information
 
     F_{ab} = ½ tr[ K_OO^{-1} (∂K_OO/∂θ_a) K_OO^{-1} (∂K_OO/∂θ_b) ],
 
-which is exactly the pullback metric computed by
+(the ½ becomes 1 for circular complex models), which is exactly the pullback
+metric computed by
 :func:`gaussian_bn.identifiability.fisher_metric`. For `N` i.i.d. observations
 the total information is `N · F`, and the **Cramér–Rao bound** is its inverse:
 

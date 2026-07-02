@@ -1,7 +1,9 @@
 """Fisher-based edge identifiability for linear Gaussian Bayesian networks.
 
 The pullback Fisher metric on the observed block,
-    G^{(O)}_{ab} = 1/2 tr[ K_OO^{-1} (dK_OO/d eta_a) K_OO^{-1} (dK_OO/d eta_b) ],
+    G^{(O)}_{ab} = c tr[ K_OO^{-1} (dK_OO/d eta_a) K_OO^{-1} (dK_OO/d eta_b) ],
+with the field constant c = 1/2 for real models and c = 1 for circular (proper)
+complex models,
 measures how sensitively the observed distribution responds to each parameter
 direction. A rank deficiency is a non-identifiable direction (e.g. a latent
 scale/rotation gauge): the parameter can move without changing the observed
@@ -39,8 +41,10 @@ def fisher_metric(
         K_of_eta: Differentiable map from a 1-D parameter vector to the observed
             covariance ``K_OO`` (a ``d x d`` Hermitian PD matrix).
         eta0: Point at which to evaluate the metric.
-        method: ``"autograd"`` uses ``torch.autograd.functional.jacobian`` (cost
-            ``O(q)`` in the parameter count ``q``); ``"fd"`` uses central finite
+        method: ``"autograd"`` uses ``torch.autograd.functional.jacobian`` in
+            forward mode, one Jacobian-vector sweep per parameter (cost ``O(q)``
+            in the parameter count ``q``), falling back to reverse mode if an
+            operation lacks forward-mode support; ``"fd"`` uses central finite
             differences on ``K_of_eta`` (a robust, derivative-free fallback).
         fd_eps: Step size for the finite-difference Jacobian.
         jitter: Diagonal shift used in the ``K_OO^{-1}`` solves.
@@ -57,7 +61,11 @@ def fisher_metric(
     if method == "autograd":
         def kflat(eta: torch.Tensor) -> torch.Tensor:
             return K_of_eta(eta).reshape(-1)
-        J = torch.autograd.functional.jacobian(kflat, eta0)          # (d*d, q)
+        try:                                    # one JVP sweep per parameter: O(q)
+            J = torch.autograd.functional.jacobian(
+                kflat, eta0, strategy="forward-mode", vectorize=True)  # (d*d, q)
+        except (RuntimeError, NotImplementedError):
+            J = torch.autograd.functional.jacobian(kflat, eta0)       # reverse fallback
         dK = [J[:, a].reshape(d, d) for a in range(q)]
     else:
         dK = []
@@ -68,12 +76,14 @@ def fisher_metric(
             dKa = (K_of_eta(eta0 + e).detach() - K_of_eta(eta0 - e).detach()) / (2 * fd_eps)
             dK.append(dKa)
 
-    # Precompute K^{-1} dK_a once per parameter, then G_ab = 0.5 tr[(K^-1 dK_a)(K^-1 dK_b)].
+    # Precompute K^{-1} dK_a once per parameter, then G_ab = c tr[(K^-1 dK_a)(K^-1 dK_b)]
+    # with the field constant c = 1/2 (real) or 1 (circular complex).
+    c = 1.0 if K0.is_complex() else 0.5
     KinvdK = [solve_psd(K0, dKa, jitter=jitter) for dKa in dK]
     G = torch.zeros((q, q), dtype=torch.float64, device=K0.device)
     for a in range(q):
         for b in range(q):
-            G[a, b] = 0.5 * torch.trace(KinvdK[a] @ KinvdK[b]).real
+            G[a, b] = c * torch.trace(KinvdK[a] @ KinvdK[b]).real
     G = 0.5 * (G + G.mH)
     eigvals, eigvecs = torch.linalg.eigh(G)
     return G, eigvals, eigvecs

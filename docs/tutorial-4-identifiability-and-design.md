@@ -9,6 +9,7 @@ Fisher metric on the observed block answers this:
 G^{(O)}_{ab} = ½ tr[ K_OO^{-1} (∂K_OO/∂η_a) K_OO^{-1} (∂K_OO/∂η_b) ]
 ```
 
+(the `½` becomes `1` for circular-complex models).
 A rank deficiency is a non-identifiable direction (a latent gauge).
 
 ```python

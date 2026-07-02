@@ -7,8 +7,8 @@ place:
 - Hermitian (symmetric) enforcement via ``hermitianize``;
 - log-determinants of Hermitian positive-definite matrices via Cholesky
   (``logdet_hpd``), never via ``slogdet`` of a general matrix;
-- linear systems via ``solve_psd`` (``torch.linalg.solve``), never via an
-  explicit ``torch.linalg.inv``;
+- linear systems via ``solve_psd`` (a Cholesky factor and triangular solves),
+  never via an explicit ``torch.linalg.inv``;
 - Schur complements that are always re-symmetrized after the subtraction
   (``schur_complement``);
 - Cholesky factors with an optional positive-definiteness ``jitter`` floor
@@ -70,22 +70,26 @@ def logdet_hpd(A: torch.Tensor, jitter: float = 0.0) -> torch.Tensor:
 
 
 def solve_psd(A: torch.Tensor, B: torch.Tensor, *, jitter: float = 0.0) -> torch.Tensor:
-    """Solve ``(A + jitter*I) X = B`` for ``X`` without forming an inverse.
+    """Solve ``(A + jitter*I) X = B`` via a Cholesky factor, never an inverse.
 
-    This is the package-wide replacement for ``torch.linalg.inv(A) @ B``; the
-    linear solve is both faster and numerically better conditioned.
+    This is the package-wide replacement for ``torch.linalg.inv(A) @ B``: the
+    coefficient matrix is factored once as ``A = L L^H`` (:func:`cholesky_psd`)
+    and ``X`` follows from two triangular solves against ``L``
+    (``torch.cholesky_solve``). ``A`` must be Hermitian positive definite after
+    the optional jitter, as it is in all internal uses.
 
     Args:
-        A: Square coefficient matrix (Hermitian PSD in all internal uses).
+        A: Square coefficient matrix (Hermitian PD in all internal uses).
         B: Right-hand side; shape ``(..., d, k)`` or ``(..., d)``.
         jitter: Optional positive diagonal shift on ``A``.
 
     Returns:
         ``X`` such that ``(A + jitter*I) X = B``.
     """
-    if jitter > 0.0:
-        A = A + jitter * _eye_like(A)
-    return torch.linalg.solve(A, B)
+    L = cholesky_psd(A, jitter=jitter)
+    if B.dim() == A.dim() - 1:                     # vector right-hand side
+        return torch.cholesky_solve(B.unsqueeze(-1), L).squeeze(-1)
+    return torch.cholesky_solve(B, L)
 
 
 def schur_complement(

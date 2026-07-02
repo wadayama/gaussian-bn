@@ -52,7 +52,8 @@ via a Cholesky log-det and a Schur complement — no explicit matrix inverse.
 
 ## Units and conventions
 
-- Mutual information is in **nats** (natural log), real-Gaussian `½` convention.
+- Mutual information is in **nats** (natural log): the `½ log-det` convention
+  for real models, `1 log-det` for circular-complex models.
 - Node indices are 0-based and topological: every edge `(i, j)` has `i < j`.
 - The default dtype is `float64`; pass `complex128` tensors for circular-complex
   models and the same code runs unchanged.

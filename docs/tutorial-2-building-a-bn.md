@@ -65,7 +65,7 @@ gbn.conditional_mean(m, [3], [0], b=[1.0], Kf=Kf)  # E[V3 | V0 = 1]
 ```
 
 Conditioning is the Schur complement
-`K_{A|B} = K_AA − K_AB K_BB^{-1} K_BA`, evaluated with a linear solve and
-re-symmetrized.
+`K_{A|B} = K_AA − K_AB K_BB^{-1} K_BA`, evaluated with a Cholesky factorization
+and triangular solves, and re-symmetrized.
 
 Next: [estimation from data](tutorial-3-estimation.md).

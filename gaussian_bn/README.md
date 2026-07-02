@@ -7,8 +7,8 @@ documented (with signatures) in [`../README.md`](../README.md#public-api).
 
 | Module | Purpose |
 | --- | --- |
-| `__init__.py` | Public-API re-exports (49 symbols, alphabetized in `__all__`). |
-| `linalg.py` | Numerical core: `hermitianize`, `logdet_hpd`, `solve_psd` (solve, never inverse), `schur_complement` (re-symmetrized), `cholesky_psd`, `psd_factor` (PSD-safe, Cholesky-first). Single chokepoint for the jitter / PD policy. |
+| `__init__.py` | Public-API re-exports (52 symbols, alphabetized in `__all__`). |
+| `linalg.py` | Numerical core: `hermitianize`, `logdet_hpd`, `solve_psd` (Cholesky factor + triangular solves, never an inverse), `schur_complement` (re-symmetrized), `cholesky_psd`, `psd_factor` (PSD-safe, Cholesky-first). Single chokepoint for the jitter / PD policy. |
 | `krecursion.py` | Forward K-recursion: `compute_k_blocks` (multi-root) and the Hermitian-flip accessor `get_K`. |
 | `model.py` | `GaussianDAG` container (validation, dtype/device inference, optional affine `mean` offsets, `k_blocks`), `k_full`, `mean_all`, `full_covariance_closed_form` (test oracle), and the autograd parametrization `pack` / `unpack` / `ParamPack`. |
 | `inference.py` | `marginal`, `conditional_covariance`, `conditional_mean`, `mutual_information`, `conditional_mutual_information`, `sample`. |
@@ -26,8 +26,9 @@ documented (with signatures) in [`../README.md`](../README.md#public-api).
   inherit them from their inputs. `GaussianDAG` infers dtype/device from the
   tensors it is given (falling back to `float64` for pure-Python-list input).
   The same code runs under `float64` (default) and `complex128`.
-- **Numerical hardening.** Conditioning routes through `solve_psd` (a linear
-  solve), never an explicit `inv`; Schur complements and self-blocks are
+- **Numerical hardening.** Conditioning routes through `solve_psd` (a Cholesky
+  factorization and triangular solves), never an explicit `inv`; Schur
+  complements and self-blocks are
   re-symmetrized; `jitter` floors the PD cone where needed. The only `inv` is in
   `full_covariance_closed_form`, kept as an independent non-differentiable test
   oracle.

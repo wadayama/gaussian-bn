@@ -9,10 +9,11 @@ Conditioning uses the Schur complement (re-symmetrized) and a linear solve, neve
 an explicit inverse:
     E[V_A | V_B = b] = K_AB K_BB^{-1} b
     Cov(V_A | V_B)   = K_AA - K_AB K_BB^{-1} K_BA.
-Mutual information and conditional mutual information use the log-det form, with
-the real-Gaussian 1/2 convention (nats):
-    I(V_A; V_B)        = 1/2 [logdet K_AA   - logdet K_{A|B}]
-    I(V_A; V_B | V_C)  = 1/2 [logdet K_{A|C} - logdet K_{A|BC}].
+Mutual information and conditional mutual information use the log-det form
+(nats), with the field constant c = 1/2 for real models and c = 1 for circular
+(proper) complex models:
+    I(V_A; V_B)        = c [logdet K_AA   - logdet K_{A|B}]
+    I(V_A; V_B | V_C)  = c [logdet K_{A|C} - logdet K_{A|BC}].
 """
 
 from __future__ import annotations
@@ -70,23 +71,36 @@ def conditional_mean(model: GaussianDAG, A: Sequence[int], B: Sequence[int], b: 
     return mA + KAB @ solve_psd(KBB, b - mB, jitter=jitter)
 
 
+def _field_const(K: torch.Tensor) -> float:
+    """Information constant: 1/2 for real Gaussians, 1 for circular complex."""
+    return 1.0 if K.is_complex() else 0.5
+
+
 def mutual_information(model: GaussianDAG, A: Sequence[int], B: Sequence[int],
                       Kf: torch.Tensor | None = None, *, jitter: float = 0.0) -> torch.Tensor:
-    """``I(V_A; V_B) = 1/2 [logdet K_AA - logdet K_{A|B}]`` (nats)."""
+    """``I(V_A; V_B) = c [logdet K_AA - logdet K_{A|B}]`` (nats).
+
+    The field constant is ``c = 1/2`` for real models and ``c = 1`` for
+    circular (proper) complex models.
+    """
     Kf = _resolve(model, Kf)
     KAA = _sub(model, Kf, A, A)
     KA_B = conditional_covariance(model, A, B, Kf, jitter=jitter)
-    return 0.5 * (logdet_hpd(KAA, jitter) - logdet_hpd(KA_B, jitter))
+    return _field_const(Kf) * (logdet_hpd(KAA, jitter) - logdet_hpd(KA_B, jitter))
 
 
 def conditional_mutual_information(model: GaussianDAG, A: Sequence[int], B: Sequence[int],
                                    C: Sequence[int], Kf: torch.Tensor | None = None,
                                    *, jitter: float = 0.0) -> torch.Tensor:
-    """``I(V_A; V_B | V_C) = 1/2 [logdet K_{A|C} - logdet K_{A|BC}]`` (nats)."""
+    """``I(V_A; V_B | V_C) = c [logdet K_{A|C} - logdet K_{A|BC}]`` (nats).
+
+    The field constant is ``c = 1/2`` for real models and ``c = 1`` for
+    circular (proper) complex models.
+    """
     Kf = _resolve(model, Kf)
     KA_C = conditional_covariance(model, A, C, Kf, jitter=jitter)
     KA_BC = conditional_covariance(model, A, list(B) + list(C), Kf, jitter=jitter)
-    return 0.5 * (logdet_hpd(KA_C, jitter) - logdet_hpd(KA_BC, jitter))
+    return _field_const(Kf) * (logdet_hpd(KA_C, jitter) - logdet_hpd(KA_BC, jitter))
 
 
 def sample(model: GaussianDAG, N: int, generator: torch.Generator) -> torch.Tensor:

@@ -119,11 +119,12 @@ Cov(V_A | V_B)   = K_AA − K_AB K_BB^{-1} K_BA             (conditional_covaria
 ```
 
 with `m = mean_all(model)` (`m_A = m_B = 0` for a zero-mean model, recovering
-`K_AB K_BB^{-1} b`). The library evaluates `K_BB^{-1}(·)` with a linear solve
+`K_AB K_BB^{-1} b`). The library evaluates `K_BB^{-1}(·)` with a Cholesky
+factorization and triangular solves
 (`solve_psd`) and re-symmetrizes the conditional covariance (`schur_complement`).
 
 **Mutual information / CMI (log-det).** With the real-Gaussian `½` convention
-(nats),
+(nats; the constant becomes `1` for circular-complex models),
 
 ```
 I(V_A; V_B)      = ½ ( log det K_AA  − log det K_{A|B} )                (mutual_information)
@@ -194,7 +195,9 @@ the parameter space through `η ↦ K_{OO}(η)`, the pullback metric
 G^{(O)}_{ab}(η) = ½ tr[ K_{OO}^{-1} (∂K_{OO}/∂η_a) K_{OO}^{-1} (∂K_{OO}/∂η_b) ].   (5)
 ```
 
-`fisher_metric` evaluates (5) with an autograd Jacobian of `K_{OO}` (or finite
+(the `½` becomes `1` for circular-complex models).
+`fisher_metric` evaluates (5) with a forward-mode autograd Jacobian of `K_{OO}`,
+one sweep per parameter (or finite
 differences); `edge_fisher` specializes `η` to chosen edge entries. The
 parameter `η` is **locally identifiable** from `O` iff `rank G^{(O)} = q`. A rank
 deficiency exposes a gauge: e.g. a hidden node `H` feeding observed `Y_1 = aH`,
