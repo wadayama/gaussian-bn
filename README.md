@@ -373,6 +373,12 @@ The citation will be updated with the paper reference once it is available.
 
 ---
 
+## Acknowledgment
+
+This work was supported by JST, CRONOS, Japan Grant Number JPMJCS25N5.
+
+---
+
 ## License
 
 `gaussian-bn` is released under the [MIT License](LICENSE).
